@@ -1,34 +1,31 @@
 import "dotenv/config";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "./app/generated/prisma/client";
 
-const prisma = new PrismaClient();
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter });
 
-async function main() {
-  // 1. Criar uma empresa
-  const company = await prisma.company.create({
-    data: { name: "Empresa Teste" },
-  });
-  console.log("Empresa criada:", company);
-
-  // 2. Criar um usuário vinculado a essa empresa
-  const user = await prisma.user.create({
+async function criarClienteTeste(companyId: string) {
+  const cliente = await prisma.client.create({
     data: {
-      name: "Fabrício",
-      email: "fabricio@teste.com",
-      password: "senha-fake-por-enquanto",
-      companyId: company.id,
+      name: "Cliente Teste",
+      companyId: companyId,
     },
   });
-  console.log("Usuário criado:", user);
+  console.log("Cliente criado com id:", cliente.id);
+  return cliente.id;
+}
 
-  // 3. Buscar a empresa já trazendo os usuários dela junto (usa o @relation!)
-  const companyWithUsers = await prisma.company.findMany({
-    include: { users: true },
+async function buscarClientePorId(id: string) {
+  const cliente = await prisma.client.findUnique({
+    where: { id },
   });
-  console.log(
-    "Empresa com usuários:",
-    JSON.stringify(companyWithUsers, null, 2),
-  );
+  console.log("Cliente:", cliente?.id ? cliente.name : "não encontrado");
+}
+
+async function main() {
+  const novoClienteId = await criarClienteTeste("cmu2yq2lt0000hw0z5y5xssq0");
+  await buscarClientePorId(novoClienteId);
 }
 
 main()
